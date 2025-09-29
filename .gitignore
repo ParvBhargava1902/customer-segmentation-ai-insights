@@ -1,0 +1,29 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Data/model/output (keep repo lean)
+data/*.parquet
+out/
+models/
+*.joblib
+
+# R / Jupyter
+.Rproj.user/
+.Rhistory
+.RData
+.ipynb_checkpoints/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+*.log
+
+# Node / misc (just in case)
+node_modules/
+dist/
+build/
+
+# Secrets (never commit real secrets)
+*.env

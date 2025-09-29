@@ -1,0 +1,72 @@
+---
+title: "VoC & Churn Analysis — R Notebook"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(tidytext)
+library(textdata)
+library(ggplot2)
+```
+
+## Load Data
+
+```{r}
+df <- readr::read_csv("data/synthetic_customers.csv")
+head(df)
+```
+
+## Simulated VoC Text (for demo)
+
+```{r}
+set.seed(42)
+themes <- c("billing issue","poor app performance","network outage","great support","pricing concern")
+voc <- tibble(
+  customer_id = sample(df$customer_id, 1000, replace = TRUE),
+  verbatim = sample(themes, 1000, replace = TRUE)
+)
+voc <- voc %>%
+  mutate(text = case_when(
+    verbatim == "billing issue" ~ "Billing got changed without notice and fees are unclear.",
+    verbatim == "poor app performance" ~ "The app is slow and crashes during checkout.",
+    verbatim == "network outage" ~ "Frequent network drops in the evening.",
+    verbatim == "great support" ~ "Support resolved my problem quickly and was very polite.",
+    verbatim == "pricing concern" ~ "Price hike without added value, not happy."
+  ))
+voc %>% head()
+```
+
+## Sentiment
+
+```{r}
+afinn <- get_sentiments("afinn")
+sent <- voc %>%
+  unnest_tokens(word, text) %>%
+  inner_join(afinn, by = "word") %>%
+  group_by(customer_id) %>%
+  summarise(sentiment_score = mean(value, na.rm = TRUE))
+summary(sent$sentiment_score)
+```
+
+## Join with Customers + Quick Drivers
+
+```{r}
+joined <- df %>% left_join(sent, by = "customer_id")
+ggplot(joined, aes(sentiment_score, churned_next_60d)) +
+  geom_jitter(height = 0.05, alpha=0.3) +
+  geom_smooth(method="loess") +
+  labs(title="Sentiment vs Churn", x="Sentiment", y="Churn (0/1)")
+```
+
+## Churn by Theme
+
+```{r}
+theme_churn <- voc %>%
+  count(verbatim, name="mentions") %>%
+  arrange(desc(mentions))
+theme_churn
+```
+
+> Use this notebook to demonstrate VoC workflows (sentiment, themes) and how they connect to churn.
